@@ -72,13 +72,13 @@ class Request(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    source_pic = "source.jpg"  # 替换你的图片地址
+    source_pic = "source1.jpg"  # 替换你的图片地址
     your_name = "huoenhaimu"  # 可不修改
     if not os.path.exists(source_pic):
         print(source_pic, " not found")
         exit()
     try:
-        server = HTTPServer(("127.0.0.1", 7001), Request)
+        server = HTTPServer(("127.0.0.1", 7000), Request)
         server.serve_forever()
     except KeyboardInterrupt:
         print("exit")

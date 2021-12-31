@@ -103,7 +103,7 @@ func main() {
 					}
 					rs, _ := ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
-					if string(rs) == "ok" {
+					if string(rs) != "ok" {
 						tc.ResetTime()
 						fmt.Println("reset startTime")
 					}
