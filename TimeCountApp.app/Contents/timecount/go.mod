@@ -2,7 +2,10 @@ module timecount
 
 go 1.17
 
-require github.com/getlantern/systray v1.1.0
+require (
+	github.com/getlantern/systray v1.1.0
+	gocv.io/x/gocv v0.29.0
+)
 
 require (
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 // indirect

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
@@ -11,21 +11,35 @@ import (
 	"timecount/icon"
 
 	"github.com/getlantern/systray"
+	"gocv.io/x/gocv"
 )
 
 var (
 	msgTemp = "{\"msg_type\": \"text\", \"content\": {\"text\": \"该休息了，已经连续工作 %d 分钟了\"}}"
-	tc      = TimeCount{}
 )
 
 const maxSecond = 3600
 
 type TimeCount struct {
-	startTime          int64
-	mx                 sync.Mutex
-	WebhookUrl         string // webhook通知方式
-	FaceRecognitionUrl string // 人脸识别地址
-	CloseFaceRecog     bool
+	startTime      int64
+	mx             sync.Mutex
+	WebhookUrl     string // webhook通知方式
+	FaceDataPath   string // 人脸识别地址
+	CloseFaceRecog bool
+	classifier     gocv.CascadeClassifier
+}
+
+func NewTimeCount(facePath string) *TimeCount {
+	classifier := gocv.NewCascadeClassifier()
+
+	if !classifier.Load(facePath) {
+		fmt.Println("load model failed")
+		return nil
+	}
+	return &TimeCount{
+		FaceDataPath: facePath,
+		classifier:   classifier,
+	}
 }
 
 func (t *TimeCount) ResetTime() {
@@ -36,6 +50,42 @@ func (t *TimeCount) ResetTime() {
 
 func (t *TimeCount) StartTime() int64 {
 	return t.startTime
+}
+
+func (t *TimeCount) Recognition() (bool, error) {
+	webCam, err := gocv.VideoCaptureDevice(0)
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+	defer webCam.Close()
+
+	img := gocv.NewMat()
+	defer img.Close()
+
+	ss := time.Now().Unix()
+	for {
+		// 监测一秒
+		if time.Now().Unix()-ss >= 3 {
+			break
+		}
+		if ok := webCam.Read(&img); !ok {
+			return false, errors.New("read img from webcam failed")
+		}
+
+		if img.Empty() {
+			continue
+		}
+
+		rects := t.classifier.DetectMultiScale(img)
+		fmt.Println("face numbers: ", len(rects))
+		if len(rects) > 0 {
+			return true, nil
+		}
+
+		time.Sleep(time.Millisecond * 200)
+	}
+	return false, nil
 }
 
 func (t *TimeCount) OnReady() {
@@ -70,14 +120,21 @@ func (t *TimeCount) OnReady() {
 
 func (t *TimeCount) OnExit() {
 	fmt.Println("exit")
+	t.classifier.Close()
 	time.Sleep(time.Second * 1)
 }
 
+var (
+	webhookUrl   string
+	faceDataPath string
+)
+
 func main() {
-	flag.StringVar(&tc.WebhookUrl, "webhook", "", "webhook通知地址")
-	flag.StringVar(&tc.FaceRecognitionUrl, "recog", "", "人脸识别服务器地址")
+	flag.StringVar(&webhookUrl, "webhook", "", "webhook通知地址")
+	flag.StringVar(&faceDataPath, "recog", "", "人脸识别特征文件地址")
 	flag.Parse()
-	if tc.FaceRecognitionUrl == "" {
+	tc := NewTimeCount(faceDataPath)
+	if tc.FaceDataPath == "" {
 		tc.CloseFaceRecog = true
 	}
 
@@ -96,16 +153,14 @@ func main() {
 					newMsg := fmt.Sprintf(msgTemp, less/60)
 					http.Post(tc.WebhookUrl, "application/json", strings.NewReader(newMsg))
 				}
-				if tc.FaceRecognitionUrl != "" && tc.CloseFaceRecog == false {
-					resp, _ := http.Get(tc.FaceRecognitionUrl)
-					if resp.Body == nil {
+				if tc.FaceDataPath != "" && tc.CloseFaceRecog == false && less%60 == 0 {
+					result, err := tc.Recognition()
+					if err != nil {
+						fmt.Println(err)
 						continue
 					}
-					rs, _ := ioutil.ReadAll(resp.Body)
-					resp.Body.Close()
-					if string(rs) != "ok" {
+					if !result {
 						tc.ResetTime()
-						fmt.Println("reset startTime")
 					}
 				}
 			}
