@@ -1,17 +1,14 @@
 # 系统久坐提醒器
+
 - 每隔一个小时提醒站立或休息，如果人脸特征识别功能是打开的，便识别计算机前的人脸，如果存在人脸，便会每隔一分钟提醒一次，直到没有检测到人脸特征或者手动重置时间。由于使用的opencv，故人脸特征识别率不是特别高，用于粗略识别，还是够用了。
-- 由于使用的systray，理论上可以跨平台编译执行。
+- 由于使用的systray和gocv，理论上可以跨平台编译执行，目前只在mac os上运行过。
 
 ### 配置app服务
 
-```shell
-# 如果需要使用人脸特征识别，需要安装opencv
-## ubuntu/raspberry
-sudo apt update
-sudo apt install libopencv-dev libgtk-3-dev libappindicator3-dev
-## mac os
-brew install opencv
+- 如果需要使用人脸特征识别，需要安装gocv;
+- 安装步骤：https://github.com/hybridgroup/gocv
 
+```shell
 # 编译服务
 cd ./Contents/timecount
 
