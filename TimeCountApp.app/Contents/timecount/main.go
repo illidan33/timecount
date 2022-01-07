@@ -29,7 +29,7 @@ type TimeCount struct {
 	classifier     gocv.CascadeClassifier
 }
 
-func NewTimeCount(facePath string) *TimeCount {
+func NewTimeCount(facePath, webhookUrl string) *TimeCount {
 	classifier := gocv.NewCascadeClassifier()
 
 	if !classifier.Load(facePath) {
@@ -39,6 +39,7 @@ func NewTimeCount(facePath string) *TimeCount {
 	return &TimeCount{
 		FaceDataPath: facePath,
 		classifier:   classifier,
+		WebhookUrl:   webhookUrl,
 	}
 }
 
@@ -78,11 +79,18 @@ func (t *TimeCount) Recognition() (bool, error) {
 		}
 
 		rects := t.classifier.DetectMultiScale(img)
-		fmt.Println("face numbers: ", len(rects))
-		if len(rects) > 0 {
-			return true, nil
+		count := 0
+		for _, ret := range rects {
+			// gocv识别度较低，过滤部分可能为非本人的特征值
+			if ret.Max.X-ret.Min.X > 200 && ret.Max.Y-ret.Min.Y > 200 {
+				count++
+			}
 		}
 
+		if count > 0 {
+			fmt.Println("face numbers: ", count)
+			return true, nil
+		}
 		time.Sleep(time.Millisecond * 200)
 	}
 	return false, nil
@@ -104,7 +112,7 @@ func (t *TimeCount) OnReady() {
 				fmt.Println("Finished quitting")
 			case <-resetBtn.ClickedCh:
 				t.ResetTime()
-				systray.SetTitle("持续工作 0分0秒")
+				systray.SetTitle("持续 0分0秒")
 			case <-closeBtn.ClickedCh:
 				if t.CloseFaceRecog {
 					t.CloseFaceRecog = false
@@ -133,11 +141,10 @@ func main() {
 	flag.StringVar(&webhookUrl, "webhook", "", "webhook通知地址")
 	flag.StringVar(&faceDataPath, "recog", "", "人脸识别特征文件地址")
 	flag.Parse()
-	tc := NewTimeCount(faceDataPath)
+	tc := NewTimeCount(faceDataPath, webhookUrl)
 	if tc.FaceDataPath == "" {
 		tc.CloseFaceRecog = true
 	}
-
 	go func() {
 		for {
 			if tc.StartTime() == 0 {
@@ -145,7 +152,7 @@ func main() {
 			}
 			now := time.Now()
 			less := now.Unix() - tc.StartTime()
-			msg := fmt.Sprintf("持续工作 %d分%d秒", less/60, less%60)
+			msg := fmt.Sprintf("持续 %d分%d秒", less/60, less%60)
 			systray.SetTitle(msg)
 			// 一分钟发一次
 			if less >= maxSecond {
