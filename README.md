@@ -9,6 +9,11 @@
 - 安装步骤：https://github.com/hybridgroup/gocv
 
 ```shell
+# mac os
+brew install opencv
+brew install pkgconfig
+
+
 # 编译服务
 cd ./Contents/timecount
 
