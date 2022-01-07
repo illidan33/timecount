@@ -33,15 +33,18 @@ type TimeCount struct {
 }
 
 func NewTimeCount(facePath, webhookUrl string) *TimeCount {
-	classifier := gocv.NewCascadeClassifier()
+	if facePath != "" {
+		classifier := gocv.NewCascadeClassifier()
 
-	if !classifier.Load(facePath) {
-		fmt.Println("load model failed")
-		return nil
+		if !classifier.Load(facePath) {
+			fmt.Println("load model failed")
+			return nil
+		}
 	}
+
 	return &TimeCount{
 		FaceDataPath: facePath,
-		classifier:   classifier,
+		classifier:   gocv.CascadeClassifier{},
 		WebhookUrl:   webhookUrl,
 	}
 }
