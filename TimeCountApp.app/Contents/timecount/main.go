@@ -15,7 +15,9 @@ import (
 )
 
 var (
-	msgTemp = "{\"msg_type\": \"text\", \"content\": {\"text\": \"该休息了，已经连续工作 %d 分钟了\"}}"
+	msgTempFeiShu        = "{\"msg_type\": \"text\", \"content\": {\"text\": \"该休息了，已经连续工作 %d 分钟了\"}}"
+	msgTempCompanyWechat = "{\"msgtype\": \"text\", \"text\": {\"content\": \"该休息了，已经连续工作 %d 分钟了\"}}"
+	msgTempDingTalk      = "{\"msgtype\": \"text\", \"text\": {\"content\": \"该休息了，已经连续工作 %d 分钟了\"}}"
 )
 
 const maxSecond = 3600
@@ -24,6 +26,7 @@ type TimeCount struct {
 	startTime      int64
 	mx             sync.Mutex
 	WebhookUrl     string // webhook通知方式
+	WebhookTemp    string // 模板
 	FaceDataPath   string // 人脸识别地址
 	CloseFaceRecog bool
 	classifier     gocv.CascadeClassifier
@@ -145,6 +148,14 @@ func main() {
 	if tc.FaceDataPath == "" {
 		tc.CloseFaceRecog = true
 	}
+	if strings.Contains(webhookUrl, "open.feishu.cn") {
+		tc.WebhookTemp = msgTempFeiShu
+	} else if strings.Contains(webhookUrl, "weixin.qq.com") {
+		tc.WebhookTemp = msgTempCompanyWechat
+	} else {
+		tc.WebhookTemp = msgTempDingTalk
+	}
+
 	go func() {
 		for {
 			if tc.StartTime() == 0 {
@@ -157,7 +168,7 @@ func main() {
 			// 一分钟发一次
 			if less >= maxSecond {
 				if tc.WebhookUrl != "" && less%60 == 0 {
-					newMsg := fmt.Sprintf(msgTemp, less/60)
+					newMsg := fmt.Sprintf(tc.WebhookTemp, less/60)
 					http.Post(tc.WebhookUrl, "application/json", strings.NewReader(newMsg))
 				}
 				if tc.FaceDataPath != "" && tc.CloseFaceRecog == false && less%60 == 0 {
