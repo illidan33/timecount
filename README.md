@@ -6,8 +6,9 @@
 
 ```shell
 # 如果需要使用人脸特征识别，需要安装opencv
-## ubuntu
-sudo apt install opencv
+## ubuntu/raspberry
+sudo apt update
+sudo apt install libopencv-dev libgtk-3-dev libappindicator3-dev
 ## mac os
 brew install opencv
 
