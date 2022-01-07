@@ -61,7 +61,7 @@ bool FindChessboardCornersSB(Mat image, Size patternSize, Mat corners, int flags
 
 bool FindChessboardCornersSBWithMeta(Mat image, Size patternSize, Mat corners, int flags, Mat meta) {
     cv::Size sz(patternSize.width, patternSize.height);
-    return cv::findChessboardCornersSBWithMeta(*image, sz, *corners, flags, *meta);
+    return cv::findChessboardCornersSB(*image, sz, *corners, flags);
 }
 
 void DrawChessboardCorners(Mat image, Size patternSize, Mat corners, bool patternWasFound) {
