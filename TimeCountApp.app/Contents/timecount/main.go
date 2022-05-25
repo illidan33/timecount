@@ -70,6 +70,12 @@ func main() {
 			systray.SetTitle(msg)
 			// 一分钟发一次
 			if less >= maxSecond {
+				// 休息时间忽略
+				h := now.Hour()
+				if h < 9 || (h >= 12 && h <= 13) || h >= 19 {
+					tc.ResetTime()
+					continue
+				}
 				if tc.WebhookUrl != "" && less%60 == 0 {
 					newMsg := fmt.Sprintf(tc.WebhookTemp, less/60)
 					http.Post(tc.WebhookUrl, "application/json", strings.NewReader(newMsg))

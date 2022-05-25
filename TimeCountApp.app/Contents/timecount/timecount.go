@@ -42,7 +42,7 @@ func NewTimeCount(facePath, webhookUrl string) *TimeCount {
 
 func (t *TimeCount) ResetTime() {
 	t.mx.Lock()
-	t.startTime = time.Now().Unix()
+	t.startTime = time.Now().Unix() - 3600
 	t.mx.Unlock()
 }
 
